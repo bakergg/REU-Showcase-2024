@@ -88,6 +88,7 @@ With this dataset, we are analyzing a 43x200x88 high-dimensional tensor that con
 # ╔═╡ c97c9798-3e50-4640-b9a3-0aae02d3803a
 md"""
 ## Data Visualization
+**relative versus same scaling**
 """
 
 # ╔═╡ 28cdfa3d-9898-4629-ace5-a047ad998098
@@ -105,7 +106,7 @@ with_theme() do
 	# Loop through the neurons
 	for (idx, data) in enumerate(eachslice(X; dims=1))
 		ax = Axis(fig[fldmod1(idx, n_cols)...];
-			title = "Neuron $idx", xlabel = "Time Steps", ylabel = "Activity")
+			title = "Neuron $idx", xlabel = "Time Steps", ylabel = "Activity", titlesize=35,ylabelsize = 25, xlabelsize = 25, xticklabelsize = 20, yticklabelsize = 20)
 		push!(axes,ax)
 		
 		# Loop through angles
@@ -163,7 +164,7 @@ with_theme() do
 	# Loop through the neurons
 	for (idx, data) in enumerate(eachslice(X; dims=1))
 		ax = Axis(fig[fldmod1(idx, n_cols)...];
-			title = "Neuron $idx", xlabel = "Time Steps", ylabel = "Activity")
+			title = "Neuron $idx", xlabel = "Time Steps", ylabel = "Activity",titlesize=35,ylabelsize = 25, xlabelsize = 25, xticklabelsize = 20, yticklabelsize = 20)
 		push!(axes,ax)
 		
 		# Loop through angles
