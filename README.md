@@ -47,11 +47,11 @@ My name is Gianna Baker and I am a junior at Washington and Jefferson College wh
 I want to give a big thank you to my research mentor Dr. Hong and the ECE Department at the University of Delaware.
 
 [1] Kolda, Bader. “Tensor Decompositions and Applications.” SIAM Review (2009).
+
 [2] Hong, Kolda, Duersch. “Generalized Canonical Polyadic Tensor Decomposition.” SIAM Review (2020).
+
 [3] Kolda, Hong. “Stochastic Gradients for Large-Scale Tensor Decomposition.” SIAM Journal on Mathematics of Data Science (2020).
-[4] Kolda, Monkey BMI Tensor Dataset, https://gitlab.com/tensors/tensor_data_monkey_bmi, 2021.
-[5] Vyas, Even-Chen, Stavisky, Ryu, Nuyujukian, Shenoy. “Neural Population Dynamics Underlying Motor Learning Transfer.” Elsevier BV (2018).
-[6] Vyas, O'Shea, Ryu, Shenoy. “Causal Role of Motor Preparation during Error-Driven Learning.” Neuron (2020).
+
 
 
 
