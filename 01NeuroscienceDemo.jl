@@ -12,6 +12,39 @@ md"""
 # Neuroscience Demo
 """
 
+# ╔═╡ 1f479cf6-47c7-452f-a86f-7620697de995
+md"""
+## Description and Interpretation
+"""
+
+# ╔═╡ b028f2d4-09cf-4ffc-9951-10303c95c1b0
+html"""
+<div style="display: flex; justify-content: space-around;">
+    <figure style="position: relative; width: 45%; margin: 0;">
+        <img src="https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/graphics/monkey_bmi_graphic.png" alt="Monkey BMI Graphic" style="width: 100%; display: block;">
+        
+    </figure>
+    
+    <figure style="position: relative; width: 45%; margin: 0;">
+        <img src="https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/graphics/monkey_bmi_cursors.png" alt="Monkey BMI Cursors" style="width: 100%; display: block;">
+        <figcaption style="position: bottom: 5px; right: 5px; text-align: right; font-style: italic; font-size: 12px;">
+            Source: T. G. Kolda, Monkey BMI Tensor Dataset, 
+            <a href="https://gitlab.com/tensors/tensor_data_monkey_bmi">GitLab</a>, 2021.
+        </figcaption>
+    </figure>
+</div>
+"""
+
+# ╔═╡ 95487545-89c9-4189-8c07-964c6ad9936d
+md"""
+In this experiment, the test subject (Monkey) is connected to a Brain-Machine Interface that measures neural activity during its assigned task of moving the cursor to one of four possible targets.  Each target is identified with its position in degrees on the envisioned circle: 0, 90, 180, and -90.  The electrodes within the BMI capture the neural impulses and electrical signals sent through the acquisition of a target until the monkey picks a target and holds the signal for 500ms (dashed lines).  These two halves of the experiment correspond to the first and second 100 time steps in the data.  The overall goal of this research is to gain insight into which regions within the motor cortex are more predominantly engaged in order to further understand the functionality of association areas.  Ultimately, this could lead to developing BMIs and devices to aid those with motor impairments.      
+
+
+
+With this dataset, we are analyzing a 43x200x88 high-dimensional tensor that contains the numbered neuron, time steps, and the numbered trial respectively.  Our goal is to be able to represent this data in lower dimensions and break it down in order to reveal patterns that we otherwise would not have recognized.  We will do this through data visualization: first of the whole high-ordered tensor, then implementing GCP decomposition to finish it out.
+
+"""
+
 # ╔═╡ d238651a-0f51-4283-ac94-1d3df9a6ffa2
 md"""
 ## Load and Download data
@@ -51,39 +84,6 @@ X = file["X"];
 
 # ╔═╡ 836ba69a-5175-4360-b750-6624fafdb09c
 angle = vec(file["angle"]);
-
-# ╔═╡ 1f479cf6-47c7-452f-a86f-7620697de995
-md"""
-## Description and Interpretation
-"""
-
-# ╔═╡ b028f2d4-09cf-4ffc-9951-10303c95c1b0
-html"""
-<div style="display: flex; justify-content: space-around;">
-    <figure style="position: relative; width: 45%; margin: 0;">
-        <img src="https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/graphics/monkey_bmi_graphic.png" alt="Monkey BMI Graphic" style="width: 100%; display: block;">
-        
-    </figure>
-    
-    <figure style="position: relative; width: 45%; margin: 0;">
-        <img src="https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/graphics/monkey_bmi_cursors.png" alt="Monkey BMI Cursors" style="width: 100%; display: block;">
-        <figcaption style="position: bottom: 5px; right: 5px; text-align: right; font-style: italic; font-size: 12px;">
-            Source: T. G. Kolda, Monkey BMI Tensor Dataset, 
-            <a href="https://gitlab.com/tensors/tensor_data_monkey_bmi">GitLab</a>, 2021.
-        </figcaption>
-    </figure>
-</div>
-"""
-
-# ╔═╡ 95487545-89c9-4189-8c07-964c6ad9936d
-md"""
-In this experiment, the test subject (Monkey) is connected to a Brain-Machine Interface that measures neural activity during its assigned task of moving the cursor to one of four possible targets.  Each target is identified with its position in degrees on the envisioned circle: 0, 90, 180, and -90.  The electrodes within the BMI capture the neural impulses and electrical signals sent through the acquisition of a target until the monkey picks a target and holds the signal for 500ms (dashed lines).  These two halves of the experiment correspond to the first and second 100 time steps in the data.  The overall goal of this research is to gain insight into which regions within the motor cortex are more predominantly engaged in order to further understand the functionality of association areas.  Ultimately, this could lead to developing BMIs and devices to aid those with motor impairments.      
-
-
-
-With this dataset, we are analyzing a 43x200x88 high-dimensional tensor that contains the numbered neuron, time steps, and the numbered trial respectively.  Our goal is to be able to represent this data in lower dimensions and break it down in order to reveal patterns that we otherwise would not have recognized.  We will do this through data visualization: first of the whole high-ordered tensor, then implementing GCP decomposition to finish it out.
-
-"""
 
 # ╔═╡ c97c9798-3e50-4640-b9a3-0aae02d3803a
 md"""
@@ -1851,9 +1851,9 @@ version = "3.5.0+0"
 # ╟─95487545-89c9-4189-8c07-964c6ad9936d
 # ╟─d238651a-0f51-4283-ac94-1d3df9a6ffa2
 # ╟─e18e85de-5ded-45cc-b994-22763b894090
-# ╟─3afdf214-8c3c-4869-931c-c863ab3669eb
-# ╟─24dac007-6352-4b4c-acf6-0266e1b0a709
-# ╟─836ba69a-5175-4360-b750-6624fafdb09c
+# ╠═3afdf214-8c3c-4869-931c-c863ab3669eb
+# ╠═24dac007-6352-4b4c-acf6-0266e1b0a709
+# ╠═836ba69a-5175-4360-b750-6624fafdb09c
 # ╟─c97c9798-3e50-4640-b9a3-0aae02d3803a
 # ╟─28cdfa3d-9898-4629-ace5-a047ad998098
 # ╟─bd0ad1d7-378d-40d8-af16-03632ecbd8ba
