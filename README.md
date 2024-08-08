@@ -5,6 +5,8 @@
 ## Introduction
 This summer, I had the opportunity to contribute to the development of the [GCPDecompositions.jl](https://github.com/dahong67/GCPDecompositions.jl) package. This package is designed for performing Generalized CP (GCP) tensor decomposition, a powerful tool in multi-dimensional (tensor) data analysis. Check out the [original repository](https://github.com/dahong67/GCPDecompositions.jl) for more details.
 
+**This project has been a significant part of my learning journey, and I am excited to share this work with you. Thanks for visiting!** :)
+
 ![Department of Electrical and Computer Engineering](https://1000logos.net/wp-content/uploads/2022/07/University-of-Delaware-Seal-768x432.png)
 
 ## Abstract of Work
@@ -34,7 +36,6 @@ Explore the [Demos Folder](https://github.com/bakergg/REU-Showcase-2024/tree/mai
 - [NBA History Data](https://github.com/bakergg/REU-Showcase-2024/blob/main/Demos/Sports%20Analytics%20Demo.pdf)
 
 
-
 ---
 
 ## About Me
@@ -42,4 +43,17 @@ My name is Gianna Baker and I am a junior at Washington and Jefferson College wh
 
 ---
 
-This project has been a significant part of my learning journey, and I am excited to share this work with you. Thanks for visiting! :)
+## Acknowledgements and References
+I want to give a big thank you to my research mentor Dr. Hong and the ECE Department at the University of Delaware.
+
+[1] Kolda, Bader. “Tensor Decompositions and Applications.” SIAM Review (2009).
+[2] Hong, Kolda, Duersch. “Generalized Canonical Polyadic Tensor Decomposition.” SIAM Review (2020).
+[3] Kolda, Hong. “Stochastic Gradients for Large-Scale Tensor Decomposition.” SIAM Journal on Mathematics of Data Science (2020).
+[4] Kolda, Monkey BMI Tensor Dataset, https://gitlab.com/tensors/tensor_data_monkey_bmi, 2021.
+[5] Vyas, Even-Chen, Stavisky, Ryu, Nuyujukian, Shenoy. “Neural Population Dynamics Underlying Motor Learning Transfer.” Elsevier BV (2018).
+[6] Vyas, O'Shea, Ryu, Shenoy. “Causal Role of Motor Preparation during Error-Driven Learning.” Neuron (2020).
+
+
+
+
+
