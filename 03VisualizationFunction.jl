@@ -4,321 +4,117 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 1effcd77-11ab-445c-a538-45c886496119
-using CairoMakie, MAT, Statistics, GCPDecompositions, LinearAlgebra, Downloads
+# ╔═╡ 29e45378-8b02-429d-93dd-a1bc1c1a5ff8
+using GCPDecompositions, CairoMakie, LinearAlgebra
 
-# ╔═╡ f55881f0-54ef-11ef-28bd-613d6a40b34e
+# ╔═╡ d34aa160-5521-11ef-18f1-274baf153a58
 md"""
-# Neuroscience Demo
+# Decomposition Visualization Function
 """
 
-# ╔═╡ d238651a-0f51-4283-ac94-1d3df9a6ffa2
+# ╔═╡ e9a0ae0e-9382-4eb0-bc7f-9b70774fa71a
 md"""
-## Load and Download data
+## The Function
 """
 
-# ╔═╡ e18e85de-5ded-45cc-b994-22763b894090
-function download()
-    
-    cache_folder = joinpath("monkey-bmi-cache")
-    cache_file = joinpath(cache_folder, "data.mat")
-    
-    # Create folder if it does not exist
-    if !isdir(cache_folder)
-        mkpath(cache_folder)
+# ╔═╡ a915df4e-438d-4d4e-bc88-6fda361c79a7
+function plot_factors(M::CPD, X::Array{}, plot_types::Vector{Symbol}; graphsize::Tuple{Int, Int}=(800,600), titlesize::Int64=30, labelsize::Int64=20, colors::Vector{Symbol}=[:steelblue], title::String="GCP Tensor Decomposition", factor_names::Vector{String}=["Mode"])
+	
+    fig = Figure(size = graphsize)
+
+	if length(colors) < ndims(M)
+        colors = vcat(colors, fill(colors[end], length(plot_types) - length(colors)))
     end
-    
-    # Check if data is already downloaded
-    if !isfile(cache_file)
-		
-        # Download data
-        url = "https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/data.mat"
-        Downloads.download(url, cache_file)
-    end
-    
-    # Read the MAT file
-    data = matread(cache_file)
-    
-    # Return the file
-    return data
-end
-
-# ╔═╡ 3afdf214-8c3c-4869-931c-c863ab3669eb
-file = download()
-
-# ╔═╡ 24dac007-6352-4b4c-acf6-0266e1b0a709
-X = file["X"];
-
-# ╔═╡ 836ba69a-5175-4360-b750-6624fafdb09c
-angle = vec(file["angle"]);
-
-# ╔═╡ 1f479cf6-47c7-452f-a86f-7620697de995
-md"""
-## Description and Interpretation
-"""
-
-# ╔═╡ b028f2d4-09cf-4ffc-9951-10303c95c1b0
-html"""
-<div style="display: flex; justify-content: space-around;">
-    <figure style="position: relative; width: 45%; margin: 0;">
-        <img src="https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/graphics/monkey_bmi_graphic.png" alt="Monkey BMI Graphic" style="width: 100%; display: block;">
-        
-    </figure>
-    
-    <figure style="position: relative; width: 45%; margin: 0;">
-        <img src="https://gitlab.com/tensors/tensor_data_monkey_bmi/-/raw/main/graphics/monkey_bmi_cursors.png" alt="Monkey BMI Cursors" style="width: 100%; display: block;">
-        <figcaption style="position: bottom: 5px; right: 5px; text-align: right; font-style: italic; font-size: 12px;">
-            Source: T. G. Kolda, Monkey BMI Tensor Dataset, 
-            <a href="https://gitlab.com/tensors/tensor_data_monkey_bmi">GitLab</a>, 2021.
-        </figcaption>
-    </figure>
-</div>
-"""
-
-# ╔═╡ 95487545-89c9-4189-8c07-964c6ad9936d
-md"""
-In this experiment, the test subject (Monkey) is connected to a Brain-Machine Interface that measures neural activity during its assigned task of moving the cursor to one of four possible targets.  Each target is identified with its position in degrees on the envisioned circle: 0, 90, 180, and -90.  The electrodes within the BMI capture the neural impulses and electrical signals sent through the acquisition of a target until the monkey picks a target and holds the signal for 500ms (dashed lines).  These two halves of the experiment correspond to the first and second 100 time steps in the data.  The overall goal of this research is to gain insight into which regions within the motor cortex are more predominantly engaged in order to further understand the functionality of association areas.  Ultimately, this could lead to developing BMIs and devices to aid those with motor impairments.      
-
-
-
-With this dataset, we are analyzing a 43x200x88 high-dimensional tensor that contains the numbered neuron, time steps, and the numbered trial respectively.  Our goal is to be able to represent this data in lower dimensions and break it down in order to reveal patterns that we otherwise would not have recognized.  We will do this through data visualization: first of the whole high-ordered tensor, then implementing GCP decomposition to finish it out.
-
-"""
-
-# ╔═╡ c97c9798-3e50-4640-b9a3-0aae02d3803a
-md"""
-## Data Visualization
-**relative versus same scaling**
-"""
-
-# ╔═╡ 28cdfa3d-9898-4629-ace5-a047ad998098
-with_theme() do
-	fig = Figure(size = (2000, 2000))
-	axes = []
-	
-	# Plot parameters
-	angle_colors = Dict(0 => :tomato1, 90 => :gold, 180 => :darkorchid3, -90 => :cyan3)
-	n_cols = 7
-
-	# Set super title
-	fig[0, 1:n_cols] = Label(fig,"Neural Activity", fontsize = 60, halign = :center,tellwidth = false, tellheight = false, font = "Bold Arial")
-
-	# Loop through the neurons
-	for (idx, data) in enumerate(eachslice(X; dims=1))
-		ax = Axis(fig[fldmod1(idx, n_cols)...];
-			title = "Neuron $idx", xlabel = "Time Steps", ylabel = "Activity", titlesize=35,ylabelsize = 25, xlabelsize = 25, xticklabelsize = 20, yticklabelsize = 20)
-		push!(axes,ax)
-		
-		# Loop through angles
-		for a in [0, 90, 180, -90]
-			angle_data = data[:, a .== angle]
-
-			# Plot individual traces
-			for trace in eachcol(angle_data)
-				lines!(ax, trace;
-					linewidth = 0.5, color = (angle_colors[a], 0.7))
-			end
-
-			# Plot the mean trace
-			lines!(ax, vec(mean(angle_data; dims=2));
-				linewidth = 4, color = angle_colors[a], label = "$(a)°")
-		end
-
-		# Make middle graphs unlabeled
-		if fldmod1(idx, n_cols)[2] != 1 && fldmod1(idx, n_cols)[2] != n_cols
-			ax.ylabelvisible = false
-        end
-
-		if fldmod1(idx, n_cols)[1] != 6 && fldmod1(idx, n_cols)[1] != n_cols
-			ax.xlabelvisible = false
-        end
-
-		# Flip and switch y-axis of last column
-		if fldmod1(idx, n_cols)[2] == n_cols
-			ax.yaxisposition = :right
-			ax.ylabelrotation = 3pi/2
-		end
-		
-		# Add legend
-		fig[7,2:n_cols] = Legend(fig, ax, ["Target Path Trajectory"];
-			titleposition = :top, tellwidth = false, tellheight = false, orientation = :horizontal, patchsize = (300,100), labelsize = 40, titlesize=35)
-
-		
-	end
-	
-	fig
-end
-
-# ╔═╡ bd0ad1d7-378d-40d8-af16-03632ecbd8ba
-with_theme() do
-	fig = Figure(size = (2000, 2000))
-	axes = []
-	
-	# Plot parameters
-	angle_colors = Dict(0 => :tomato1, 90 => :gold, 180 => :darkorchid3, -90 => :cyan3)
-	n_cols = 7
-
-	# Set super title
-	fig[0, 1:n_cols] = Label(fig,"Neural Activity", fontsize = 60, halign = :center,tellwidth = false, tellheight = false, font = "Bold Arial")
-
-	# Loop through the neurons
-	for (idx, data) in enumerate(eachslice(X; dims=1))
-		ax = Axis(fig[fldmod1(idx, n_cols)...];
-			title = "Neuron $idx", xlabel = "Time Steps", ylabel = "Activity",titlesize=35,ylabelsize = 25, xlabelsize = 25, xticklabelsize = 20, yticklabelsize = 20)
-		push!(axes,ax)
-		
-		# Loop through angles
-		for a in [0, 90, 180, -90]
-			angle_data = data[:, a .== angle]
-
-			# Plot individual traces
-			for trace in eachcol(angle_data)
-				lines!(ax, trace;
-					linewidth = 0.5, color = (angle_colors[a], 0.7))
-			end
-
-			# Plot the mean trace
-			lines!(ax, vec(mean(angle_data; dims=2));
-				linewidth = 4, color = angle_colors[a], label = "$(a)°")
-		end
-
-		# Make middle graphs unlabeled
-		if fldmod1(idx, n_cols)[2] != 1 && fldmod1(idx, n_cols)[2] != n_cols
-			ax.ylabelvisible = false
-        end
-
-		if fldmod1(idx, n_cols)[1] != 6 && fldmod1(idx, n_cols)[1] != n_cols
-			ax.xlabelvisible = false
-        end
-
-		# Flip and switch y-axis of last column
-		if fldmod1(idx, n_cols)[2] == n_cols
-			ax.yaxisposition = :right
-			ax.ylabelrotation = 3pi/2
-		end
-		
-		# Add legend
-		fig[7,2:n_cols] = Legend(fig, ax, ["Target Path Trajectory"];
-			titleposition = :top, tellwidth = false, tellheight = false, orientation = :horizontal, patchsize = (300,100), labelsize = 40, titlesize=35)
-
-		# Link axes of subplots
-		linkxaxes!(axes...)
-		linkyaxes!(axes...)
-	end
-	
-	fig
-end
-
-# ╔═╡ a0e4e563-354a-4d87-a50b-ca0002163c38
-md"""
-We notice that neural activity dwindles as the numbered neuron increases as well as the acquisition of the target (first 100 steps) takes more neural activity than holding the cursor on the target.  We also start to see a more discrete pattern where the choice of either 90 or 180 degrees elicits more neural activity.
-"""
-
-# ╔═╡ e08abda2-1886-4e0b-8f0f-fac59fcc23b1
-md"""
-## GCP Decomposition
-"""
-
-# ╔═╡ 3135f2f4-fa6f-480f-b8c6-0b395a078885
-M = gcp(X, 10; loss = GCPLosses.NonnegativeLeastSquares());
-
-# ╔═╡ 2b6031c8-5ed8-4527-8fcb-215d116725b8
-with_theme() do
-    fig = Figure(size = (2000, 2500))
-
-    # Create an array of the colors
-    color_map = Dict(0 => :tomato1, 90 => :gold, 180 => :darkorchid3, -90 => :cyan3)
-    list_of_colors = [color_map[a] for a in angle]
-
-    # Set up axes and plot
+    # Set up axes and plot each factor matrix
     for row in 1:ncomponents(M)
-        ax1 = Axis(fig[row+1, 1],xticklabelsize = 30)
-        barplot!(ax1, 1:size(X, 1), normalize(M.U[1][:, row], Inf);
-		color = (:orange,.67))
-
-        ax2 = Axis(fig[row+1, 2], width = 425,xticklabelsize = 30)
-        lines!(ax2, 1:size(X, 2), normalize(M.U[2][:, row], Inf);
-		color = :springgreen, linewidth = 5)
 		
-        ax3 = Axis(fig[row+1, 3],xticklabelsize = 30)
-        for trial in 1:size(X, 3)
-            scatter!(ax3, trial, normalize(M.U[3][:, row], Inf)[trial];
-                color = list_of_colors[trial], markersize = 20)
-        end
-    end
-
-    # Create legends
-    elements = [MarkerElement(color = c, marker = :circle, markersize = 30)
-				for c in values(color_map)]
-	
-    
-        Legend(fig[10, 4], elements, ["0°", "90°", "180°", "-90°"],
-		tellheight = false,  labelsize=50)
-    
-
+		for matrix in 1:ndims(M)
+			ax = Axis(fig[row+1, matrix])
+			if plot_types[matrix] == :barplot
+				barplot!(ax, 1:size(X, matrix), LinearAlgebra.normalize(M.U[matrix][:, row], Inf); color = colors[matrix])
+			elseif plot_types[matrix] == :lines
+				lines!(ax, 1:size(X, matrix), LinearAlgebra.normalize(M.U[matrix][:, row], Inf); color = colors[matrix])
+			elseif plot_types[matrix] == :scatter
+				scatter!(ax, 1:size(X, matrix), LinearAlgebra.normalize(M.U[matrix][:, row], Inf); color = colors[matrix])
+			end	
+		end
+	end
     # Link and hide axes
-    for axis in 1:3
+    for axis in 1:ndims(M)
+		
         linkxaxes!(contents(fig[:, axis])...)
         linkyaxes!(contents(fig[:, axis])...)
     end
-    
-	hidexdecorations!.(contents(fig[2:10, 1:3]); ticks=false, grid=false)
-    hideydecorations!.(contents(fig[2:11, 1:3]); ticks=false, grid=false)
 
     # Add labels and super title
-    labels = ["Neuron", "Time", "Trial"]
+	for i in 1:ndims(M)
+		if factor_names == ["Mode"]
+			Label(fig[1, i], "$(factor_names[1]) $i"; tellwidth = false, fontsize = labelsize, font = "Bold Arial")
+		else	
+			Label(fig[1, i], "$(factor_names[i])"; tellwidth = false, fontsize = labelsize, font = "Bold Arial")
+		end
+	end
+				
+	fig[0, 1:ndims(M)] = Label(fig, title, fontsize = titlesize, halign = :center, valign = :bottom, tellwidth = false, font = "Bold Arial")
+	fig
     
-	for i in 1:3
-        Label(fig[1, i], labels[i]; tellwidth = false, fontsize = 45,
-		font = "Bold Arial")
-    end
-	
-    fig[0, 1:3] = Label(fig, "Monkey BMI Tensor Decomposition",
-		fontsize = 60, halign = :center, valign = :bottom, tellwidth = false, font = "Bold Arial")
-
-    fig
 end
 
-# ╔═╡ 2161f4b1-5421-46b9-a099-45bfdb83d8d6
+# ╔═╡ c635859b-4f3b-4d1b-bf85-7d634d0aff61
 md"""
-From this breakdown we confirm our perceived trend that neurons in the lower index range show higher activity more frequently than those in the higher range, meaning they are more commonly involved in the assigned motor task.  We do notice that generally after a neural activity peak the signal is not sustained or prolonged, as it tends to significantly diminish.  Most intriguingly, we see the development of certain clusters sorted by angle in our trial plot, which could allude to condition-specific responses with associated high probabilities.
+This function automatically creates a generic plot for tensor decomposition.  It only needs the tensor, its decomposition, and the plot types for each mode.  There are optional arguments for more customization (more will be added).
 """
 
-# ╔═╡ 5b8ceb2f-449a-4b59-8a35-5c73ecffc729
+# ╔═╡ 95023296-9db4-408f-8d35-36676ced7f1b
 md"""
-Uncovering these patterns paves the way for targeted neural investigations, 
-showcasing tensor decomposition as a promising tool in neuroscience
+## Usage and Examples
 """
 
-# ╔═╡ 10553254-2017-4c98-885f-d924c096faea
+# ╔═╡ e24e7fed-d0b2-454d-b82f-1e2c709b0ef0
+X = rand(Float64,77,44,91) # random tensor
+
+# ╔═╡ 05536b2c-1d70-4c7e-bcaf-0baf5b2ebad0
+M = gcp(X,4) # rank 6 decomposition
+
+# ╔═╡ 744972f4-b807-4731-92c4-62cc3ee54cec
+N = gcp(X,7)
+
+# ╔═╡ c259c741-5e35-4b5e-930e-df71c421bf7c
 md"""
-## References
+### Generic Plot
+"""
 
-1. S. Vyas, N. Even-Chen, S. D. Stavisky, S. I. Ryu, P. Nuyujukian, and K. V. Shenoy,
-   Neural Population Dynamics Underlying Motor Learning Transfer,
-   Elsevier BV, Vol. 97, No. 5, pp. 1177-1186.e3, March 2018,
-   [DOI: 10.1016/j.neuron.2018.01.040](https://doi.org/10.1016/j.neuron.2018.01.040).
+# ╔═╡ 16161366-570c-4ad4-81fb-46b8a724d555
+plot_factors(M,X,[:barplot,:barplot,:lines])
 
-2. S. Vyas, D. J. O'Shea, S. I. Ryu, and K. V. Shenoy,
-   Causal Role of Motor Preparation during Error-Driven Learning,
-   Neuron, Elsevier BV, Vol. 106, No. 2, pp. 329-339.e4, April 2020,
-   [DOI: 10.1016/j.neuron.2020.01.019](https://doi.org/10.1016/j.neuron.2020.01.019).
+# ╔═╡ 5614cfc6-598f-43bb-a56b-19157103b3e6
+md"""
+### Custom Plot
+"""
+
+# ╔═╡ 2482d28b-edc7-4d72-a6e8-91cd2eaa1875
+plot_factors(N,X,[:barplot,:lines,:scatter];graphsize = (900,1200),titlesize = 35, labelsize = 30, colors = [:salmon,:darkturquoise,:darkorange], title = "Economical Value", factor_names = ["Assets","Time","Interest"])
+
+# ╔═╡ f4e556dd-7ca6-4516-99a2-debae5ddfc0f
+md"""
+## Functionality
+"""
+
+# ╔═╡ 741b564d-ffe9-47bf-8a8e-c14115faa96d
+md"""
+**Time efficiency**!  This function can either serve as a generic plot to quickly see how the decomposition/data looks, or it can be customized to create a visually appealing graph that can tell a story with the data/highlight essential parts.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 GCPDecompositions = "f59fb95b-1bc8-443b-b347-5e445a549f37"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 CairoMakie = "~0.12.3"
 GCPDecompositions = "~0.2.0"
-MAT = "~0.10.7"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -327,7 +123,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "c8c7dee310a200345ddf01d7eb2dae5e6625f18c"
+project_hash = "835091d771d62cb1a3614a7dcd5449b8f5a6800a"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -395,11 +191,6 @@ version = "0.4.7"
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
-[[deps.BufferedStreams]]
-git-tree-sha1 = "4ae47f9a4b1dc19897d3743ff13685925c5202ec"
-uuid = "e1450e63-4bb3-523b-b2a4-4ffa8c0fd77d"
-version = "1.2.1"
-
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "9e2a6b69137e6969bab0152632dcb3bc108c8bdd"
@@ -453,12 +244,6 @@ weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
     ChainRulesCoreSparseArraysExt = "SparseArrays"
-
-[[deps.CodecZlib]]
-deps = ["TranscodingStreams", "Zlib_jll"]
-git-tree-sha1 = "b8fe8546d52ca154ac556809e10c75e6e7430ac8"
-uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
-version = "0.7.5"
 
 [[deps.ColorBrewer]]
 deps = ["Colors", "JSON", "Test"]
@@ -795,35 +580,11 @@ git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
 
-[[deps.HDF5]]
-deps = ["Compat", "HDF5_jll", "Libdl", "MPIPreferences", "Mmap", "Preferences", "Printf", "Random", "Requires", "UUIDs"]
-git-tree-sha1 = "e856eef26cf5bf2b0f95f8f4fc37553c72c8641c"
-uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.17.2"
-
-    [deps.HDF5.extensions]
-    MPIExt = "MPI"
-
-    [deps.HDF5.weakdeps]
-    MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
-
-[[deps.HDF5_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "LazyArtifacts", "LibCURL_jll", "Libdl", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "OpenSSL_jll", "TOML", "Zlib_jll", "libaec_jll"]
-git-tree-sha1 = "38c8874692d48d5440d5752d6c74b0c6b0b60739"
-uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
-version = "1.14.2+1"
-
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
 git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
-
-[[deps.Hwloc_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "ca0f6bf568b4bfc807e7537f081c81e35ceca114"
-uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
-version = "2.10.0+0"
 
 [[deps.HypergeometricFunctions]]
 deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
@@ -1109,35 +870,11 @@ version = "0.3.28"
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
-[[deps.MAT]]
-deps = ["BufferedStreams", "CodecZlib", "HDF5", "SparseArrays"]
-git-tree-sha1 = "1d2dd9b186742b0f317f2530ddcbf00eebb18e96"
-uuid = "23992714-dd62-5051-b70f-ba57cb901cac"
-version = "0.10.7"
-
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
 git-tree-sha1 = "80b2833b56d466b3858d565adcd16a4a05f2089b"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 version = "2024.1.0+0"
-
-[[deps.MPICH_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
-git-tree-sha1 = "4099bb6809ac109bfc17d521dad33763bcf026b7"
-uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
-version = "4.2.1+1"
-
-[[deps.MPIPreferences]]
-deps = ["Libdl", "Preferences"]
-git-tree-sha1 = "c105fe467859e7f6e9a852cb15cb4301126fac07"
-uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
-version = "0.1.11"
-
-[[deps.MPItrampoline_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
-git-tree-sha1 = "8c35d5420193841b2f367e658540e8d9e0601ed0"
-uuid = "f1f71cc9-e9ae-5b93-9b94-4fe0e1ad3748"
-version = "5.4.0+0"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -1176,12 +913,6 @@ version = "0.6.0"
 deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.2+1"
-
-[[deps.MicrosoftMPI_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "f12a29c4400ba812841c6ace3f4efbb6dbb3ba01"
-uuid = "9237b28f-5490-5468-be7b-bb81f5f5e6cf"
-version = "10.1.4+2"
 
 [[deps.Missings]]
 deps = ["DataAPI"]
@@ -1259,12 +990,6 @@ version = "3.2.4+0"
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
 version = "0.8.1+2"
-
-[[deps.OpenMPI_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML", "Zlib_jll"]
-git-tree-sha1 = "a9de2f1fc98b92f8856c640bf4aec1ac9b2a0d86"
-uuid = "fe0851c0-eecd-5654-98d4-656369965a5c"
-version = "5.0.3+0"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1767,12 +1492,6 @@ git-tree-sha1 = "51b5eeb3f98367157a7a12a1fb0aa5328946c03c"
 uuid = "9a68df92-36a6-505f-a73e-abb412b6bfb4"
 version = "0.2.3+0"
 
-[[deps.libaec_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "46bf7be2917b59b761247be3f317ddf75e50e997"
-uuid = "477f73a3-ac25-53e9-8cc3-50b2fa2566f0"
-version = "1.1.2+0"
-
 [[deps.libaom_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "1827acba325fdcdf1d2647fc8d5301dd9ba43a9d"
@@ -1844,25 +1563,20 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─f55881f0-54ef-11ef-28bd-613d6a40b34e
-# ╟─1effcd77-11ab-445c-a538-45c886496119
-# ╟─1f479cf6-47c7-452f-a86f-7620697de995
-# ╟─b028f2d4-09cf-4ffc-9951-10303c95c1b0
-# ╟─95487545-89c9-4189-8c07-964c6ad9936d
-# ╟─d238651a-0f51-4283-ac94-1d3df9a6ffa2
-# ╟─e18e85de-5ded-45cc-b994-22763b894090
-# ╟─3afdf214-8c3c-4869-931c-c863ab3669eb
-# ╟─24dac007-6352-4b4c-acf6-0266e1b0a709
-# ╟─836ba69a-5175-4360-b750-6624fafdb09c
-# ╟─c97c9798-3e50-4640-b9a3-0aae02d3803a
-# ╟─28cdfa3d-9898-4629-ace5-a047ad998098
-# ╟─bd0ad1d7-378d-40d8-af16-03632ecbd8ba
-# ╟─a0e4e563-354a-4d87-a50b-ca0002163c38
-# ╟─e08abda2-1886-4e0b-8f0f-fac59fcc23b1
-# ╠═3135f2f4-fa6f-480f-b8c6-0b395a078885
-# ╟─2b6031c8-5ed8-4527-8fcb-215d116725b8
-# ╟─2161f4b1-5421-46b9-a099-45bfdb83d8d6
-# ╟─5b8ceb2f-449a-4b59-8a35-5c73ecffc729
-# ╟─10553254-2017-4c98-885f-d924c096faea
+# ╟─d34aa160-5521-11ef-18f1-274baf153a58
+# ╠═29e45378-8b02-429d-93dd-a1bc1c1a5ff8
+# ╟─e9a0ae0e-9382-4eb0-bc7f-9b70774fa71a
+# ╠═a915df4e-438d-4d4e-bc88-6fda361c79a7
+# ╟─c635859b-4f3b-4d1b-bf85-7d634d0aff61
+# ╟─95023296-9db4-408f-8d35-36676ced7f1b
+# ╠═e24e7fed-d0b2-454d-b82f-1e2c709b0ef0
+# ╠═05536b2c-1d70-4c7e-bcaf-0baf5b2ebad0
+# ╠═744972f4-b807-4731-92c4-62cc3ee54cec
+# ╟─c259c741-5e35-4b5e-930e-df71c421bf7c
+# ╠═16161366-570c-4ad4-81fb-46b8a724d555
+# ╟─5614cfc6-598f-43bb-a56b-19157103b3e6
+# ╠═2482d28b-edc7-4d72-a6e8-91cd2eaa1875
+# ╟─f4e556dd-7ca6-4516-99a2-debae5ddfc0f
+# ╟─741b564d-ffe9-47bf-8a8e-c14115faa96d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
