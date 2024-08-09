@@ -74,10 +74,10 @@ md"""
 X = rand(Float64,77,44,91) # random tensor
 
 # ╔═╡ 05536b2c-1d70-4c7e-bcaf-0baf5b2ebad0
-M = gcp(X,4) # rank 6 decomposition
+M = gcp(X,4) # rank 4 decomposition
 
 # ╔═╡ 744972f4-b807-4731-92c4-62cc3ee54cec
-N = gcp(X,7)
+N = gcp(X,7) # rank 7 decomposition
 
 # ╔═╡ c259c741-5e35-4b5e-930e-df71c421bf7c
 md"""
